@@ -289,6 +289,7 @@ def cli():
 
     parser.add_argument("--my-data-is-ready", action="store_true")
     parser.add_argument("--no-ftp", action="store_true")
+    parser.add_argument("--no-submit", action="store_true")
 
     parser.add_argument("--study-accession", required=True)
 
@@ -323,7 +324,7 @@ def cli():
             "strategy": _convert_library_strategy(args.run_lib_strategy),
             "protocol": args.run_lib_protocol,
         }, center_name=args.run_center_name, real=args.my_data_is_ready)
-        if exp_stat >= 0:
+        if exp_stat >= 0 and not args.no_submit:
             do_upload = False if args.no_ftp else True
             run_stat, run_accession = register_run(args.run_name, args.run_file_path, exp_accession, center_name=args.run_center_name, fn_type=args.run_file_type, real=args.my_data_is_ready, upload=do_upload)
             if run_stat >= 0 and run_accession:
