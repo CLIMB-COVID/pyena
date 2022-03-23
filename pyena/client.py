@@ -289,7 +289,7 @@ def cli():
 
     parser.add_argument("--my-data-is-ready", action="store_true")
     parser.add_argument("--no-ftp", action="store_true")
-    parser.add_argument("--no-submit", action="store_true")
+    parser.add_argument("--sample-only", action="store_true")
 
     parser.add_argument("--study-accession", required=True)
 
@@ -300,14 +300,14 @@ def cli():
 
     parser.add_argument("--experiment-attr", action='append', nargs=2, metavar=('tag', 'value'))
 
-    parser.add_argument("--run-name", required=True)
-    parser.add_argument("--run-file-path", required=True)
+    parser.add_argument("--run-name", required=False)
+    parser.add_argument("--run-file-path", required=False)
     parser.add_argument("--run-file-type", required=False, default="bam")
-    parser.add_argument("--run-center-name", required=True)
-    parser.add_argument("--run-instrument", required=True)
-    parser.add_argument("--run-lib-source", required=True)
-    parser.add_argument("--run-lib-selection", required=True)
-    parser.add_argument("--run-lib-strategy", required=True)
+    parser.add_argument("--run-center-name", required=False)
+    parser.add_argument("--run-instrument", required=False)
+    parser.add_argument("--run-lib-source", required=False)
+    parser.add_argument("--run-lib-selection", required=False)
+    parser.add_argument("--run-lib-strategy", required=False)
     parser.add_argument("--run-lib-protocol", required=False, default="")
 
 
@@ -317,31 +317,32 @@ def cli():
     success = 0
 
     sample_stat, sample_accession = register_sample(args.sample_name, args.sample_taxon, args.sample_center_name, {x[0]: x[1] for x in args.sample_attr}, real=args.my_data_is_ready)
-    if sample_stat >= 0:
+    if sample_stat >= 0 and not args.sample_only:
         exp_stat, exp_accession = register_experiment(args.run_name, args.study_accession, sample_accession, args.run_instrument.replace("_", " "), attributes={x[0]: x[1] for x in args.experiment_attr}, library_d={
             "source": args.run_lib_source.replace("_", " "),
             "selection": args.run_lib_selection.replace("_", " "),
             "strategy": _convert_library_strategy(args.run_lib_strategy),
             "protocol": args.run_lib_protocol,
         }, center_name=args.run_center_name, real=args.my_data_is_ready)
-        if exp_stat >= 0 and not args.no_submit:
+        if exp_stat >= 0:
             do_upload = False if args.no_ftp else True
             run_stat, run_accession = register_run(args.run_name, args.run_file_path, exp_accession, center_name=args.run_center_name, fn_type=args.run_file_type, real=args.my_data_is_ready, upload=do_upload)
             if run_stat >= 0 and run_accession:
                 success = 1
 
-    sys.stdout.write(" ".join([str(x) for x in [
-        success,
-        1 if args.my_data_is_ready else 0,
-        args.sample_name,
-        args.run_name,
-        args.run_file_path,
-        args.study_accession,
-        sample_accession,
-        exp_accession,
-        run_accession
-    ]]) + '\n')
-    if not success:
-        if run_stat < 0:
-            sys.exit(abs(run_stat))
-        sys.exit(2)
+    if not args.sample_only:
+        sys.stdout.write(" ".join([str(x) for x in [
+            success,
+            1 if args.my_data_is_ready else 0,
+            args.sample_name,
+            args.run_name,
+            args.run_file_path,
+            args.study_accession,
+            sample_accession,
+            exp_accession,
+            run_accession
+        ]]) + '\n')
+        if not success:
+            if run_stat < 0:
+                sys.exit(abs(run_stat))
+            sys.exit(2)
