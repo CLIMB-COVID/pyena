@@ -300,14 +300,14 @@ def cli():
 
     parser.add_argument("--experiment-attr", action='append', nargs=2, metavar=('tag', 'value'))
 
-    parser.add_argument("--run-name", required=False)
-    parser.add_argument("--run-file-path", required=False)
+    parser.add_argument("--run-name", required=True)
+    parser.add_argument("--run-file-path", required=True)
     parser.add_argument("--run-file-type", required=False, default="bam")
-    parser.add_argument("--run-center-name", required=False)
-    parser.add_argument("--run-instrument", required=False)
-    parser.add_argument("--run-lib-source", required=False)
-    parser.add_argument("--run-lib-selection", required=False)
-    parser.add_argument("--run-lib-strategy", required=False)
+    parser.add_argument("--run-center-name", required=True)
+    parser.add_argument("--run-instrument", required=True)
+    parser.add_argument("--run-lib-source", required=True)
+    parser.add_argument("--run-lib-selection", required=True)
+    parser.add_argument("--run-lib-strategy", required=True)
     parser.add_argument("--run-lib-protocol", required=False, default="")
 
 
@@ -330,19 +330,18 @@ def cli():
             if run_stat >= 0 and run_accession:
                 success = 1
 
-    if not args.sample_only:
-        sys.stdout.write(" ".join([str(x) for x in [
-            success,
-            1 if args.my_data_is_ready else 0,
-            args.sample_name,
-            args.run_name,
-            args.run_file_path,
-            args.study_accession,
-            sample_accession,
-            exp_accession,
-            run_accession
-        ]]) + '\n')
-        if not success:
-            if run_stat < 0:
-                sys.exit(abs(run_stat))
-            sys.exit(2)
+    sys.stdout.write(" ".join([str(x) for x in [
+        success,
+        1 if args.my_data_is_ready else 0,
+        args.sample_name,
+        args.run_name,
+        args.run_file_path,
+        args.study_accession,
+        sample_accession,
+        exp_accession,
+        run_accession
+    ]]) + '\n')
+    if not success:
+        if run_stat < 0:
+            sys.exit(abs(run_stat))
+        sys.exit(2)
