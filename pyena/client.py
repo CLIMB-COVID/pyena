@@ -341,7 +341,7 @@ def cli():
         exp_accession,
         run_accession
     ]]) + '\n')
-    if not success:
+    if not success and not args.sample_only:
         if run_stat < 0:
             sys.exit(abs(run_stat))
         sys.exit(2)
