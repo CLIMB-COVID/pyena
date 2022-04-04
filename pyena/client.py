@@ -300,14 +300,14 @@ def cli():
 
     parser.add_argument("--experiment-attr", action='append', nargs=2, metavar=('tag', 'value'))
 
-    parser.add_argument("--run-name", required=True)
-    parser.add_argument("--run-file-path", required=True)
+    parser.add_argument("--run-name", required=False)
+    parser.add_argument("--run-file-path", required=False)
     parser.add_argument("--run-file-type", required=False, default="bam")
-    parser.add_argument("--run-center-name", required=True)
-    parser.add_argument("--run-instrument", required=True)
-    parser.add_argument("--run-lib-source", required=True)
-    parser.add_argument("--run-lib-selection", required=True)
-    parser.add_argument("--run-lib-strategy", required=True)
+    parser.add_argument("--run-center-name", required=False)
+    parser.add_argument("--run-instrument", required=False)
+    parser.add_argument("--run-lib-source", required=False)
+    parser.add_argument("--run-lib-selection", required=False)
+    parser.add_argument("--run-lib-strategy", required=False)
     parser.add_argument("--run-lib-protocol", required=False, default="")
 
 
