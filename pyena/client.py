@@ -317,14 +317,14 @@ def cli():
     success = 0
 
     sample_stat, sample_accession = register_sample(args.sample_name, args.sample_taxon, args.sample_center_name, {x[0]: x[1] for x in args.sample_attr}, real=args.my_data_is_ready)
-    if sample_stat >= 0:
+    if sample_stat >= 0 and not args.sample_only:
         exp_stat, exp_accession = register_experiment(args.run_name, args.study_accession, sample_accession, args.run_instrument.replace("_", " "), attributes={x[0]: x[1] for x in args.experiment_attr}, library_d={
             "source": args.run_lib_source.replace("_", " "),
             "selection": args.run_lib_selection.replace("_", " "),
             "strategy": _convert_library_strategy(args.run_lib_strategy),
             "protocol": args.run_lib_protocol,
         }, center_name=args.run_center_name, real=args.my_data_is_ready)
-        if exp_stat >= 0 and not args.sample_only:
+        if exp_stat >= 0:
             do_upload = False if args.no_ftp else True
             run_stat, run_accession = register_run(args.run_name, args.run_file_path, exp_accession, center_name=args.run_center_name, fn_type=args.run_file_type, real=args.my_data_is_ready, upload=do_upload)
             if run_stat >= 0 and run_accession:
