@@ -317,6 +317,8 @@ def cli():
     success = 0
 
     sample_stat, sample_accession = register_sample(args.sample_name, args.sample_taxon, args.sample_center_name, {x[0]: x[1] for x in args.sample_attr}, real=args.my_data_is_ready)
+    if sample_stat and sample_accession and args.sample_only:
+        success = 1
     if sample_stat >= 0 and not args.sample_only: # Only register_experiment / run if sample only flag not set
         exp_stat, exp_accession = register_experiment(args.run_name, args.study_accession, sample_accession, args.run_instrument.replace("_", " "), attributes={x[0]: x[1] for x in args.experiment_attr}, library_d={
             "source": args.run_lib_source.replace("_", " "),
@@ -341,7 +343,10 @@ def cli():
         exp_accession,
         run_accession
     ]]) + '\n')
-    if not success and not args.sample_only:
+    if not success:
+        if args.sample_only:
+            if sample_stat < 0:
+                sys.exit(abs(sample_stat))
         if run_stat < 0:
             sys.exit(abs(run_stat))
         sys.exit(2)
