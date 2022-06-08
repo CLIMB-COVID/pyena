@@ -69,13 +69,18 @@ def _convert_platform(instrument_name):
                 return instrument_make, possible_model_v
     return None, None
 
-def _add_today(center_name):
+def _add_today(center_name, modify=False):
+    modify_action = '''
+        <ACTION>
+            <MODIFY/>
+        </ACTION>        
+    ''' if modify else ''
     return '''
     <SUBMISSION center_name="''' + center_name + '''">
     <ACTIONS>
         <ACTION>
             <ADD/>
-        </ACTION>
+        </ACTION>''' + modify_action + '''
         <ACTION>
             <HOLD HoldUntilDate="%s" />
         </ACTION>
@@ -166,10 +171,10 @@ def handle_response(status_code, content, accession=False):
     return response_code, response_accession
 
 
-def submit_today(submit_type, payload, center_name, release_asap=False, real=False):
+def submit_today(submit_type, payload, center_name, release_asap=False, real=False, modify=False):
     files = {}
     files[submit_type] = payload
-    files["SUBMISSION"] = _add_today(center_name)
+    files["SUBMISSION"] = _add_today(center_name, modify)
 
     if real:
         r = requests.post("https://www.ebi.ac.uk/ena/submit/drop-box/submit/",
@@ -190,7 +195,7 @@ def submit_today(submit_type, payload, center_name, release_asap=False, real=Fal
 
     return status, accession
 
-def register_sample(sample_alias, taxon_id, center_name, attributes={}, real=False):
+def register_sample(sample_alias, taxon_id, center_name, attributes={}, real=False, modify=False):
     s_attributes = "\n".join(["<SAMPLE_ATTRIBUTE><TAG>%s</TAG><VALUE>%s</VALUE></SAMPLE_ATTRIBUTE>" % (k, v) for k,v in attributes.items() if v is not None and len(v) > 0])
 
     s_xml = '''
@@ -205,7 +210,7 @@ def register_sample(sample_alias, taxon_id, center_name, attributes={}, real=Fal
     </SAMPLE_SET>
     '''
 
-    return submit_today("SAMPLE", s_xml, center_name, release_asap=True, real=real)
+    return submit_today("SAMPLE", s_xml, center_name, release_asap=True, real=real, modify=modify)
 
 def register_experiment(exp_alias, study_accession, sample_accession, instrument, library_d, center_name, attributes={}, real=False):
     e_attributes = "\n".join(["<EXPERIMENT_ATTRIBUTE><TAG>%s</TAG><VALUE>%s</VALUE></EXPERIMENT_ATTRIBUTE>" % (k, v) for k,v in attributes.items() if v is not None and len(v) > 0])
@@ -290,6 +295,7 @@ def cli():
     parser.add_argument("--my-data-is-ready", action="store_true")
     parser.add_argument("--no-ftp", action="store_true")
     parser.add_argument("--sample-only", action="store_true")
+    parser.add_argument("--modify", action="store_true")
 
     parser.add_argument("--study-accession", required=True)
 
@@ -316,7 +322,7 @@ def cli():
     sample_accession = exp_accession = run_accession = None
     success = 0
 
-    sample_stat, sample_accession = register_sample(args.sample_name, args.sample_taxon, args.sample_center_name, {x[0]: x[1] for x in args.sample_attr}, real=args.my_data_is_ready)
+    sample_stat, sample_accession = register_sample(args.sample_name, args.sample_taxon, args.sample_center_name, {x[0]: x[1] for x in args.sample_attr}, real=args.my_data_is_ready, modify=args.modify)
     if sample_stat and sample_accession and args.sample_only:
         success = 1
     if sample_stat >= 0 and not args.sample_only: # Only register_experiment / run if sample only flag not set
