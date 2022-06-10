@@ -70,23 +70,32 @@ def _convert_platform(instrument_name):
     return None, None
 
 def _add_today(center_name, modify=False):
-    modify_action = '''
+    if modify:
+        action = '''
         <ACTION>
             <MODIFY/>
-        </ACTION>        
-    ''' if modify else ''
-    return '''
-    <SUBMISSION center_name="''' + center_name + '''">
-    <ACTIONS>
+        </ACTION>'''
+        # <ACTION>
+        #     <VALIDATE/>
+        # </ACTION>        
+    else:
+        action = '''
         <ACTION>
-            <ADD/>
-        </ACTION>''' + modify_action + '''
+            <MODIFY/>
+        </ACTION>
+        <ACTION>
+            <VALIDATE/>
+        </ACTION>
         <ACTION>
             <HOLD HoldUntilDate="%s" />
-        </ACTION>
+        </ACTION>        
+         ''' % datetime.today().strftime('%Y-%m-%d')
+    return '''
+    <SUBMISSION center_name="''' + center_name + '''">
+    <ACTIONS>''' + action + '''
     </ACTIONS>
     </SUBMISSION>
-    ''' % datetime.today().strftime('%Y-%m-%d')
+    '''
 
 def _release_target(target, center_name, real=False):
     release_xml = '''
@@ -175,7 +184,9 @@ def submit_today(submit_type, payload, center_name, release_asap=False, real=Fal
     files = {}
     files[submit_type] = payload
     files["SUBMISSION"] = _add_today(center_name, modify)
-
+    # print(payload)
+    # print(files["SUBMISSION"])
+    
     if real:
         r = requests.post("https://www.ebi.ac.uk/ena/submit/drop-box/submit/",
                 files=files,
@@ -184,8 +195,7 @@ def submit_today(submit_type, payload, center_name, release_asap=False, real=Fal
         r = requests.post("https://wwwdev.ebi.ac.uk/ena/submit/drop-box/submit/",
                 files=files,
                 auth=HTTPBasicAuth(WEBIN_USER, WEBIN_PASS))
-    #print(payload)
-    #print(_add_today())
+        
     status, accession = handle_response(r.status_code, r.text, accession=submit_type)
     if release_asap and status == 0:
         r = _release_target(accession, center_name, real=real)
@@ -209,8 +219,10 @@ def register_sample(sample_alias, taxon_id, center_name, attributes={}, real=Fal
     </SAMPLE>
     </SAMPLE_SET>
     '''
-
-    return submit_today("SAMPLE", s_xml, center_name, release_asap=True, real=real, modify=modify)
+    if modify:
+        return submit_today("SAMPLE", s_xml, center_name, release_asap=False, real=real, modify=modify)
+    else:
+        return submit_today("SAMPLE", s_xml, center_name, release_asap=True, real=real, modify=modify)
 
 def register_experiment(exp_alias, study_accession, sample_accession, instrument, library_d, center_name, attributes={}, real=False):
     e_attributes = "\n".join(["<EXPERIMENT_ATTRIBUTE><TAG>%s</TAG><VALUE>%s</VALUE></EXPERIMENT_ATTRIBUTE>" % (k, v) for k,v in attributes.items() if v is not None and len(v) > 0])
@@ -323,9 +335,10 @@ def cli():
     success = 0
 
     sample_stat, sample_accession = register_sample(args.sample_name, args.sample_taxon, args.sample_center_name, {x[0]: x[1] for x in args.sample_attr}, real=args.my_data_is_ready, modify=args.modify)
+
     if sample_stat and sample_accession and args.sample_only:
         success = 1
-    if sample_stat >= 0 and not args.sample_only: # Only register_experiment / run if sample only flag not set
+    elif sample_stat >= 0 and not args.sample_only: # Only register_experiment / run if sample only flag not set
         exp_stat, exp_accession = register_experiment(args.run_name, args.study_accession, sample_accession, args.run_instrument.replace("_", " "), attributes={x[0]: x[1] for x in args.experiment_attr}, library_d={
             "source": args.run_lib_source.replace("_", " "),
             "selection": args.run_lib_selection.replace("_", " "),
@@ -351,8 +364,7 @@ def cli():
     ]]) + '\n')
     if not success:
         if args.sample_only:
-            if sample_stat < 0:
-                sys.exit(abs(sample_stat))
+            sys.exit(2)
         if run_stat < 0:
             sys.exit(abs(run_stat))
         sys.exit(2)
