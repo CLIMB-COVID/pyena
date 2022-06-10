@@ -81,14 +81,11 @@ def _add_today(center_name, modify=False):
     else:
         action = '''
         <ACTION>
-            <MODIFY/>
-        </ACTION>
-        <ACTION>
-            <VALIDATE/>
+            <ADD/>
         </ACTION>
         <ACTION>
             <HOLD HoldUntilDate="%s" />
-        </ACTION>        
+        </ACTION>
          ''' % datetime.today().strftime('%Y-%m-%d')
     return '''
     <SUBMISSION center_name="''' + center_name + '''">
@@ -107,6 +104,7 @@ def _release_target(target, center_name, real=False):
     </ACTIONS>
     </SUBMISSION>
     ''' % target
+    # print(release_xml)
     if real:
         return requests.post("https://www.ebi.ac.uk/ena/submit/drop-box/submit/",
                 files={
@@ -195,10 +193,12 @@ def submit_today(submit_type, payload, center_name, release_asap=False, real=Fal
         r = requests.post("https://wwwdev.ebi.ac.uk/ena/submit/drop-box/submit/",
                 files=files,
                 auth=HTTPBasicAuth(WEBIN_USER, WEBIN_PASS))
+        # print(r.text)
         
     status, accession = handle_response(r.status_code, r.text, accession=submit_type)
     if release_asap and status == 0:
         r = _release_target(accession, center_name, real=real)
+        # print(r.text)
         status, _ = handle_response(r.status_code, r.text)
         if status == 0:
             sys.stderr.write("[INFO] %s released successfully: %s\n" % (submit_type, accession))
@@ -335,8 +335,8 @@ def cli():
     success = 0
 
     sample_stat, sample_accession = register_sample(args.sample_name, args.sample_taxon, args.sample_center_name, {x[0]: x[1] for x in args.sample_attr}, real=args.my_data_is_ready, modify=args.modify)
-
-    if sample_stat and sample_accession and args.sample_only:
+    
+    if sample_stat == 0 and sample_accession and args.sample_only:
         success = 1
     elif sample_stat >= 0 and not args.sample_only: # Only register_experiment / run if sample only flag not set
         exp_stat, exp_accession = register_experiment(args.run_name, args.study_accession, sample_accession, args.run_instrument.replace("_", " "), attributes={x[0]: x[1] for x in args.experiment_attr}, library_d={
