@@ -7,6 +7,7 @@ from socket import timeout
 from datetime import datetime
 from requests.auth import HTTPBasicAuth
 from bs4 import BeautifulSoup as bs         # pip install bs4 lxml
+import json
 
 from .util import hashfile
 
@@ -20,6 +21,12 @@ def _convert_library_strategy(s):
     if s in conversions:
         return conversions[s]
     return s
+
+def get_sample_list(project, samp_name):
+    r = requests.get(
+        f"https://www.ebi.ac.uk/ena/portal/api/search?query=study_accession=%22{project}%22%20AND%20sample_alias=%22{samp_name}%22&result=sample&fields=sample_accession,sample_description,sample_alias,secondary_sample_accession&limit=0&download=false&format=json"
+    )
+    return json.loads(r.text)
 
 def _convert_platform(instrument_name):
     # Based on https://github.com/enasequence/schema/blob/master/src/main/resources/uk/ac/ebi/ena/sra/schema/SRA.common.xsd
@@ -331,10 +338,20 @@ def cli():
 
     args = parser.parse_args()
 
+
+
     sample_accession = exp_accession = run_accession = None
     success = 0
 
-    sample_stat, sample_accession = register_sample(args.sample_name, args.sample_taxon, args.sample_center_name, {x[0]: x[1] for x in args.sample_attr}, real=args.my_data_is_ready, modify=args.modify)
+    #Check if the sample / Project combo already exists without crashing ENA
+    samp_list = get_sample_list(args.study_accession, args.sample_name)
+
+    if samp_list:
+        sys.stderr.write("[SKIP] Accession %s already exists. Moving on...\n" % samp_list[0]["secondary_sample_accession"])
+        sample_accession = samp_list[0]["secondary_sample_accession"]
+        sample_stat = 1
+    else:
+        sample_stat, sample_accession = register_sample(args.sample_name, args.sample_taxon, args.sample_center_name, {x[0]: x[1] for x in args.sample_attr}, real=args.my_data_is_ready, modify=args.modify)
     
     if sample_stat >= 0 and sample_accession and args.sample_only:
         success = 1
