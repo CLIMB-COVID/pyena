@@ -200,7 +200,7 @@ def submit_today(submit_type, payload, center_name, release_asap=False, real=Fal
         r = requests.post("https://wwwdev.ebi.ac.uk/ena/submit/drop-box/submit/",
                 files=files,
                 auth=HTTPBasicAuth(WEBIN_USER, WEBIN_PASS))
-        # print(r.text)
+        print(r.text, file=sys.stderr)
         
     status, accession = handle_response(r.status_code, r.text, accession=submit_type)
     if release_asap and status == 0:
@@ -349,6 +349,7 @@ def cli():
     if samp_list:
         sys.stderr.write("[SKIP] Accession %s already exists. Moving on...\n" % samp_list[0]["secondary_sample_accession"])
         sample_accession = samp_list[0]["secondary_sample_accession"]
+
         sample_stat = 1
     else:
         sample_stat, sample_accession = register_sample(args.sample_name, args.sample_taxon, args.sample_center_name, {x[0]: x[1] for x in args.sample_attr}, real=args.my_data_is_ready, modify=args.modify)
